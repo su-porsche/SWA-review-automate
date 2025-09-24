@@ -1,0 +1,20 @@
+﻿{
+  "ignore_sections": [
+    "Change History",
+    "Revision History",
+    "Summary of Changes",
+    "\u00c4nderungshistorie",
+    "\u00c4nderungsverlauf",
+    "Historique des modifications",
+    "Historique",
+    "Table of Contents",
+    "Contents",
+    "Content",
+    "Table des mati\u00e8res",
+    "Sommaire",
+    "Inhalt",
+    "Inhaltsverzeichnis",
+    "Verzeichnis",
+    "Indice"
+  ]
+}

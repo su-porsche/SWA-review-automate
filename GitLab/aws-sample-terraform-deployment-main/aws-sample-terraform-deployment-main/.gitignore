@@ -1,0 +1,13 @@
+# Terraform
+.terraform**
+terraform.tfstate**
+
+# Build Artifacts
+builds
+**/lambda/config.json
+
+# IDEs & OS
+.idea
+.DS_Store
+
+terraform/lambda/node_modules

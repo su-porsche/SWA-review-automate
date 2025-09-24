@@ -1,0 +1,65 @@
+include:
+  - local: 'min_terraform_pipeline.yml'
+  
+variables:
+  TF_ROOT: "${CI_PROJECT_DIR}/terraform"
+  TF_STATE_NAME_PREFIX: did_not_change_project_name # adjust to your project name
+
+terraform:fmt:
+  extends: .terraform:fmt
+  rules:
+    - if: '$PIPELINE_TYPE == "deploy"'
+
+terraform:validate:
+  extends: .terraform:validate
+  rules:
+    - if: '$PIPELINE_TYPE == "deploy"'
+
+terraform:plan:dev:
+  extends: .terraform:plan
+  stage: deploy_dev
+  rules:
+    - if: '$PIPELINE_TYPE == "deploy"'
+  variables:
+    AWS_OIDC_IAM_ROLE_ARN: $AWS_OIDC_IAM_ROLE_ARN
+    TF_STATE_NAME: "${TF_STATE_NAME_PREFIX}-dev"
+    ENV_ID: "dev"
+
+tfsec:
+  extends: .tfsec
+  rules:
+    - if: '$PIPELINE_TYPE == "deploy"'
+
+terraform:apply:dev:
+  extends: .terraform:apply
+  rules:
+    - if: '$PIPELINE_TYPE == "deploy"'
+  stage: deploy_dev
+  needs:
+    - terraform:plan:dev
+  variables:
+    AWS_OIDC_IAM_ROLE_ARN: $AWS_OIDC_IAM_ROLE_ARN
+    TF_STATE_NAME: "${TF_STATE_NAME_PREFIX}-dev"
+    ENV_ID: "dev"
+
+terraform:destroy:dev:
+  extends: .terraform:destroy
+  rules:
+    - if: '$PIPELINE_TYPE == "deploy"'
+  stage: destroy_dev
+  variables:
+    AWS_OIDC_IAM_ROLE_ARN: $AWS_OIDC_IAM_ROLE_ARN
+    TF_STATE_NAME: "${TF_STATE_NAME_PREFIX}-dev"
+    TF_VAR_env_id: "dev"
+  when: manual
+
+workflow:
+  rules:
+    ####################################################################################
+    ### MAIN BRANCH (Invoked upon merge)                                             ###
+    ####################################################################################
+    - if: '$CI_COMMIT_REF_NAME =~ /^main/ && $CI_PIPELINE_SOURCE == "push"'
+      changes:
+        - terraform/*
+      variables:
+        PIPELINE_TYPE: deploy

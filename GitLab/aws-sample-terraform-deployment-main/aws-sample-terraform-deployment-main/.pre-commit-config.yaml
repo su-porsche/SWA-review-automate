@@ -1,0 +1,19 @@
+repos:
+  - repo: https://github.com/terraform-docs/terraform-docs
+    rev: "v0.16.0"
+    hooks:
+      - id: terraform-docs-go
+        name: Terraform Module Documentation
+        entry: terraform-docs
+        args: ["markdown", "--sort-by", "required", "--output-file", "../README.md", "./terraform/"]
+  - repo: https://github.com/antonbabenko/pre-commit-terraform
+    rev: "v1.88.4"
+    hooks:
+      - id: terraform_fmt
+        args: ["--args=-write=true"]
+  - repo: https://github.com/aquasecurity/tfsec
+    rev: "v1.28.1"
+    hooks:
+      - id: tfsec
+        name: TFSec
+        entry: tfsec terraform/

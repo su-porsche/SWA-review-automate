@@ -1,0 +1,18 @@
+{
+	"Version": "2012-10-17",
+	"Statement": [
+		{
+			"Effect": "Allow",
+			"Principal": {
+				"Federated": "arn:aws:iam::714551764977:oidc-provider/cicd.skyway.porsche.com/"
+			},
+			"Action": "sts:AssumeRoleWithWebIdentity",
+			"Condition": {
+				"StringLike": {
+					"cicd.skyway.porsche.com:sub": "project_path:SWARA/*:ref_type:*:ref:*",
+					"cicd.skyway.porsche.com:aud": "https://cicd.skyway.porsche.com"
+				}
+			}
+		}
+	]
+}

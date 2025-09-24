@@ -1,0 +1,12 @@
+{
+	"folders": [
+		{
+			"path": ".."
+		},
+		{
+			"name": "poc-review-conceptview",
+			"path": "../poc-review-conceptview"
+		}
+	],
+	"settings": {}
+}

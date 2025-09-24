@@ -1,0 +1,30 @@
+version: '3.8'
+services:
+  db:
+    image: ankane/pgvector
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: mpc_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./txts:/txts
+      - ./pdfs:/pdfs
+
+  agent:
+    build: .
+    environment:
+      - OPENAI_API_KEY=your_openai_api_key_here
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/mpc_db
+    depends_on:
+      - db
+    volumes:
+      - .:/app
+      - ./txts:/txts
+      - ./pdfs:/pdfs
+    command: ["python", "main.py"]
+
+volumes:
+  pgdata:

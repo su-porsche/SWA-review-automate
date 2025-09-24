@@ -1,0 +1,781 @@
+--- Seite 1 ---
+Guidelines for Creating the Software Architecture Documentation
+
+--- Seite 2 ---
+PORSCHE
+
+Change History
+5.1 14.04.2023
+4.6.(EN) 12.12.2022
+4.6 21.07.2022
+45(EN) 15.06.2020
+4.5 14.01.2019
+4.4 19.01.2018
+4.3 30.07.2015
+4.0 12.12.2013
+3.2 22.02.2010
+3.1 19.05.2009
+3.0 29.04.2009
+2.1 29.06.2007
+1.0 25.07.2005
+
+Adaption to Posix systems
+
+Formal adaptions
+
+Chapter 8.6 Timing Behaviour" added
+
+Translation of the German Leitfaden version 4.5 to English.
+
+Critical architecture-relevant requirements, behaviour during
+startup, shutdown and reset. Adaptation Chapter 4.3.
+
+Corrections and rephrasing, form & provision, concretization
+Multicore/-CPU
+
+Safety, security, application data set download, Flexray, op-
+eration modes, multicore, watchdog concept, organisational
+structure
+
+Adaptions to AUTOSAR
+
+Information about flash times added
+
+Various error corrections
+
+Extensive streamlining and restructuring of content
+
+Detailing and refinement
+
+Revision of the previous template document based on ver-
+sion 1.14.
+
+Otmane El Azzati
+
+(t
+
+ranslate only)
+
+Michael Schmidt,
+Alkesh Solanki
+
+Michael Schmidt,
+
+N
+
+ils Asmussen
+
+Michael Schmidt,
+Jean-Marc Meyer
+
+Kevin Zange, Mi-
+chael Schmidt, Nick
+Walther
+
+Kevin Zange, Mi-
+chael Schmidt
+
+U
+
+Q
+
+[>]
+
+QD
+
+[>]
+
+Q
+
+f Vatter
+
+f Vatter
+
+hristian Andersch
+
+hristian Andersch
+
+hristian Andersch
+
+hristian Andersch
+
+hristian Andersch
+
+ Dr. Ing. h.c. F. Porsche AG
+
+EGE2
+
+Guide for Software Architecture Documentation
+
+Version 5.1
+2023-04-14
+
+--- Seite 3 ---
+PORSCHE
+
+Table of Contents
+
+1 General Requirements 5
+1.1 Objective of these Guidelines 5
+1.2 Aim and Purpose of the Software Architecture Documentation 5
+1.3 Use of Existing Information and Documents 6
+1.4 Creation, Design and Cover Page 6
+1.5 Form and Provision 6
+2 Milestones 7
+2.1 Target Architecture and Project Livecycle 7
+2.2 Milestone "SW Architecture Confirmed" 7
+2.3 _ Milestone SW Architecture Implemented 8
+2.4 Milestone SW Stabilised 8
+3 Cover Sheet 9
+4 Architectural Concept View 10
+4.1 Overview 10
+4.2 _ Takeover and Further Development Based on Other Projects 10
+4.3 _ UseofNew Technologies or Concepts 11
+4.4 Critical Architectural Requirements 11
+4.5 Safety Related Aspects 11
+4.6 Security Related Aspects 11
+4.7 System Interfaces 11
+4.8 System Behaviour in the Network 12
+49 Flexray Operation 12
+4.10 Software Updates 12
+4.11 Failhandling 13
+4.12 Special Operation Modes 13
+4.13 _Behaviour at Startup, Shutdown and Reset 13
+5 Infrastructure View 16
+5.1 Hardware Components and Block Diagram 16
+5.2 Description of used microcontrollers/-processors 16
+5.3 Peripherals 17
+5.4 Planned Resource Consumption at SOP 17
+5.5 Hardware Scalability Strategy 18
+5.6 Development Environment 18
+5.7 Prevention against Flash Corruption during Operation 18
+5.8 Watchdog Concept 19
+Dr. Ing. h.c. F. Porsche AG Guide for Software Architecture Documentation Version 5.1
+
+EGE2 2023-04-14
+
+--- Seite 4 ---
+PORSCHE
+
+6 Logical View 20
+6.1 Static Architecture Model of the Software Components 20
+6.2 Description of the Software Components 20
+6.3 Organisational Structure 21
+6.4 Data Flow 21
+6.5 Safety Architecture 21
+7 Data View 22
+7.41 ROM Memory Map 22
+7.2 RAM Memory Map 22
+73 _ NVariants 23
+74 Data Storage and Data Assurance 23
+75 Data Buffers 25
+7.6 Reset Safe Data 25
+8 Process View Classic AUTOSAR 26
+8.1 Operating System 26
+82 Runnable 26
+8.3 Tasks 26
+84  ISRs 27
+85 0SHooks 27
+8.6 Timing Behaviour 28
+8.6.1 Dynamic Design 28
+8.6.2 Real-time Requirements 28
+8.6.3 Influencing Factors 30
+8.6.4 Load Tests 30
+9 Process View POSIX-OS based ECUs 31
+9.1 Operating System 31
+9.2 _ Processes 31
+9.3 Operating System Services 32
+@Dr. Ing. h.c. F. Porsche AG Guide for Software Architecture Documentation Version 5.1
+EGE2 2023-04-14
+
+--- Seite 5 ---
+1
+
+1.1
+
+1.2
+
+PORSCHE
+
+General Requirements
+
+Objective of these Guidelines
+
+This document is a guideline that describes Porsche's requirements for the software architecture documenta-
+tion of embedded control units (ECUs).
+
+The structure of this guide, in particular chapters 3to 7, may be used as a basis for the software architecture
+documentation to be created.
+
+Aim and Purpose of the Software Architecture Documentation
+
+The documentation of the software architecture is the basis for the architecture review and formal architecture
+approval by Porsche AG, which are part of the Porsche development process. The information it contains shall
+therefore be comprehensive, complete and consistent.
+
+Furthermore, the software architecture documentation serves to provide Porsche AG with an insight into the
+system on a technical level in order to be able to carry out various measures quickly and efficiently during the
+development process (e.g. risk assessment of changes, carrying out code reviews).
+
+Figure 1: V-Model
+
+It makes sense to carry out the review at the end of the architecture phase (see Figure 1). Earlier, the docu-
+ments are not (completely) available, whereas later changes will lead to increased efforts. With timely imple-
+mentation, errors can be avoided in the first place.
+
+Dr. Ing. h.c. F. Porsche AG Guide for Software Architecture Documentation Version 5.1
+EGE2 2023-04-14
+
+--- Seite 6 ---
+1.3
+
+1.4
+
+1.5
+
+PORSCHE
+
+Use of Existing Information and Documents
+
+In organizations whose software development process complies with Automotive SPICE Level 2 (alternatively
+CMM(I) Level 3) or higher, the content required by Porsche AG is usually a subset of the documentation cre-
+ated during the design phase. Therefore, the creation of the software architecture documentation should es-
+sentially consist of a compilation of already existing information.
+
+A further option is to adopt the design documentation available from the supplier as software architecture doc-
+umentation, in agreement with Porsche AG - even if it differs in individual points from Porsche requirements.
+However, the information described in these guidelines shall be available.
+
+Creation, Design and Cover Page
+
+Since the software architecture documentation is to be provided by the supplier to Porsche AG, document
+templates from the respective supplier can be used. The software architecture documentation shall be pre-
+pared in either German or English. The structure of the cover sheet is described in Chapter 3 Cover Sheet.
+
+Form and Provision
+The SW architecture documentation shall be provided to Porsche in PDF or HTML format. Format deviations
+shall be agreed with the person responsible for the software architecture review.
+
+The SW architecture documentation should consist of only one document. If external documents cannot be
+integrated, they shall be supplied in full as aPDF or HTML document.
+
+Dr. Ing. h.c. F. Porsche AG Guide for Software Architecture Documentation Version 5.1
+EGE2 2023-04-14
+
+--- Seite 7 ---
+PORSCHE
+
+2 Milestones
+
+2.1 Target Architecture and Project Livecycle
+
+The software architecture document shall represent the target architecture of the system to be developed, as
+well as any significant changes that are already known at the start of the project (e.g. development starts with
+processor derivative A, a change to processor derivative B is planned for release xy).
+
+It is not intended to describe the current project status or the ongoing project progress in the software archi-
+tecture document during development via the planned releases (the feature release plan or the project require-
+ments specification is used for this purpose).
+
+There are three major milestones during the project lifecycle, which represent the progressive maturity of the
+architecture. These milestones shall be planned in the release plan. In general, all milestones shall be reached
+
+implementation
+
+MS SW Architecture Confirmed 
+
+A-sample B-sample C-sample pp oscies > sis ]
+eeismeal
+
+| Note 1 Status 3U
+
+MS SW architecture Implemented Note 3, Status 3E
+MS SW Stabilised
+
+as early as possible.
+
+Figure 2: Time schedule of the milestones (schematic representation)
+
+2.2 Milestone "SW Architecture Confirmed"
+
+Since the B sample implements the essential architectural features of the system, the formal confirmation of
+the software architecture takes place during the A sample phase. The exact date is project-specific and is de-
+termined together with the supplier at the beginning of the project. The software architecture documentation
+must be available in its final version by this time.
+
+Dr. Ing. h.c. F. Porsche AG Guide for Software Architecture Documentation Version 5.1
+EGE2 2023-04-14
+
+--- Seite 8 ---
+
+
+--- Seite 9 ---
+o 
+o 
+o 
+o 
+o 
+ 
+o 
+o 
+o 
+o 
+o
+
+--- Seite 10 ---
+PORSCHE
+
+4 Architectural Concept View
+
+4.1
+
+4.2
+
+The conceptual view represents the essential functions and features of the system, as well as the integration of
+the system in the environment or vehicle.
+
+Overview
+
+This view is intended to describe which functions the system includes and which not. A brief introduction to
+the system shall be provided. The purpose is to make the functionality understandable to readers who are ex-
+perts in software architecture but are not familiar with this system. Ideally, the following items are listed:
+
+e Key features
+
+e Most important use cases
+
+e Most important components
+
+e Most important parts delivered (deliverables)
+ Added value
+
+A textual description is sufficient; sketches and graphics can be added for illustration.
+
+Takeover and Further Development Based on Other Projects
+
+To minimize effort and risks, often platform concepts are applied, or existing projects (the so-called reference
+project or lead project) are used as a starting point for further development.
+
+In this section, it shall be explained whether and to what extent the existing project is based on already existing
+products and developments. This applies not only to the software and its configuration but also to the hard-
+ware used.
+
+When describing a carry-over scope, a distinction must be made between the carry-over of concepts and the
+carry-over of implemented components.
+
+Furthermore, the development stage of the lead project(s) shall be shown, e.g.
+
+e already in current series production at one or more other OEMs
+
+e currently under development, planned series production at one or more OEMs at an earlier time than PAG
+series production
+
+e under development, planned series production at about the same time as PAG
+
+Dr. Ing. h.c. F. Porsche AG Guide for Software Architecture Documentation Version 5.1
+EGE2 2023-04-14
+
+--- Seite 11 ---
+
+
+--- Seite 12 ---
+
+
+--- Seite 13 ---
+o 
+ 
+ 
+ 
+ 
+o 
+o 
+o 
+o
+
+--- Seite 14 ---
+PORSCHE
+
+e Which effects arise from security requirements, e.g., due to Secure Boot / Trusted Boot?
+e Which general steps must be carried out by the system in the startup and shutdown phase? (e.g., HW ini-
+tialization, execution of bootloader, reading RAM mirror, saving NVM data, ...)
+o Which hardware components (controller, CPU cores, peripheral modules, ...) are involved?
+o In which order the individual steps are executed?
+o Which dependencies exist between the components and the external periphery (e.g., synchronicity,
+blocking, waiting for signalling of a state via CAN)?
+o Which time frames are planned for the individual steps?
+ _Arepresentation of the sequences, e.g., in the form of atable, a state machine or a sequence diagram (see
+Figure 3).
+  Ifthere are different startup/shutdown paths, these shall also be documented (e.g., depending on the rea-
+son ofa reset).
+e Which conditions lead to a reset and which additional reactions are performed?
+e _Howare reset cycles prevented and what reaction is executed in case a reset cycle was detected?
+
+Dr. Ing. h.c. F. Porsche AG Guide for Software Architecture Documentation Version 5.1
+EGE2 2023-04-14
+
+--- Seite 15 ---
+or PORSCHE
+
+startUpd)
+
+Requirement 1:
+Full functionality available
+after 2 seconds after StartUp()
+
+Requirement 2:
+CAN available after 1 second
+after StartUp()
+
+Requirement 3:
+Camera available after 1,5
+
+seconds after StartUp()
+
+StartUp
+
+>
+
+needs up to 150 ms
+
+CANavailable()
+
+ActivateCAN()
+InitializeRAM()
+Constraint:
+needs 50 to 100 ms
+RAMavailable
+le 1
+Constraint:
+
+InitCamera()
+
+MemoryManager
+
+VideoAvailable()
+
+Constraint:
+runing after <= 500 ms
+
+Figure 3: Exemplary representation of the startup-behaviour as sequence diagram
+
+ Dr. Ing. h.c. F. Porsche AG
+
+EGE2
+
+Guide for Software Architecture Documentation
+
+Version 5.1
+2023-04-14
+
+--- Seite 16 ---
+ADC
+Valve
+Driver
+Valve
+Sensor
+External
+ROM
+CAN
+Conroller
+Display
+CAN
+Microcontroller
+X-Bus
+10 Mbit/s
+Y-Bus
+1 Mbit/s
+Z-Bus
+10 MB/s
+
+--- Seite 17 ---
+o 
+o 
+o 
+ 
+ 
+o 
+ 
+o 
+ 
+ 
+ 
+ 
+o 
+ 
+o 
+ 
+o 
+o 
+o
+
+--- Seite 18 ---
+
+
+--- Seite 19 ---
+
+
+--- Seite 20 ---
+o 
+o 
+o 
+o 
+o 
+o 
+o 
+o 
+ 
+o 
+o 
+o
+
+--- Seite 21 ---
+
+
+--- Seite 22 ---
+o 
+o 
+o 
+o 
+o
+
+--- Seite 23 ---
+o 
+o 
+o 
+o 
+o 
+ 
+o 
+o 
+o
+
+--- Seite 24 ---
+oo. ARORSCHE
+
+is written when ...
+
+Data Assurance
+
+Remarks
+
+Flash- Default applica- | 1kB | Never during opera- This data setisused | No protection dur-
+ROM tion data set tion, can onlymodified | asfallback in case of | ing runtime, is
+by software update. no valid variant cod- | checked for integ-
+ingis presentorthe | rity duringthe
+EEPROM content is | flash process
+corrupted. (same as for pro-
+gram code)
+EEPROM | Application data | 1kB | Never during opera- Is copied to RAM CRC Checksum If data validation
+set for variant tion, is calibrated dur- | during system failed the default,
+USA ing production atsup- | startup due to per- data set is read from
+plier site. formance reasons. Flash-ROM. The
+check is running cy-
+clic in task XY with
+low priority.
+EEPROM | Application data | 1kB | Never during opera- Is copied to RAM CRC Checksum If data validation
+set for variant tion, is calibrated dur- | during system failed the default,
+"ROW" ing production atsup- | startup due to per- data set is read from
+plier site. formance reasons. Flash-ROM. The
+check is running oy-
+clic in task XY with
+low priority.
+EEPROM | User data 256 | Atinitial operation, de- | During operationthe | CRC Checksum For a detailed de-
+(original) Byte | fault data is copied data is requested via | and redundant scription ofthe data
+from ROM. During op- | EEPROM Manager data storage mirror concept see
+eration, changed val- chapter X.Y
+ues are stored immedi-
+ately.
+EEPROM | User data 256 | Copy of.original datais | Only if validationof | See above For a detailed de-
+(mirror copy) Byte | written during system | original data failed scription of the data
+
+shutdown.
+
+mirror concept see
+chapter X.Y
+
+Figure 6: Example table of persisting data
+
+In columns "Type of data" and "Scope", for example, the following entries are conceivable:
+
+e Coding values, size 100 bytes
+
+e Variant dependent data set, size 200 bytes each
+  Calibration values (e.g., end stops), size 64 bytes
+e User data (e.g., seat position, telephone book entries), size 1 kB
+
+In columns, "is written when..." and "is read when..." it shall be specified when this data is written and read, e.q.:
+
+e immediately after each change of value
+
+e  cyclically every 'n
+
+seconds
+
+e during control unit overrun
+
+ Dr. Ing. h.c. F. Porsche AG
+
+EGE2
+
+Guide for Software Architecture Documentation
+
+Version 5.1
+2023-04-14
+
+--- Seite 25 ---
+
+
+--- Seite 26 ---
+
+
+--- Seite 27 ---
+
+
+--- Seite 28 ---
+8.6
+
+8.6.1
+
+8.6.2
+
+PORSCHE
+
+Timing Behaviour
+
+Dynamic Design
+To illustrate the dynamic design, a graphical overview of the planned scheduling is required.
+
+| Ous | 1188us I 2378us | 3564us | 4752us | 7128us | 8318us
+
+aa, u, u JE BEE > T FIR H 4
+Task H
+au A----
+
+Figure 8: Example of the task scheduling
+
+3
+
+Real-time Requirements
+
+Real-time requirements shall be documented and evaluated according to their criticality. The criticality rating
+results from the effects of its violation, e.g., causing a reset or delayed reaction of the control unit, and the ex-
+pected tolerances. Such real-time requirements can, for example, are derived from customer requirements,
+originate from FuSa functions (programme sequence control / watchdogs) or result from experience from pre-
+vious projects.
+
+Dr. Ing. h.c. F. Porsche AG Guide for Software Architecture Documentation Version 5.1
+EGE2 2023-04-14
+
+--- Seite 29 ---
+Timer
+Core 1
+Core 2
+Real-time requirement
+Event
+Trigger execution of 1 ms and 10 ms tasks
+1 ms task: Compute 
+control variables
+1 ms task:
+Store control variables
+10 ms task:
+Filter signal curve
+1 ms task: Compute
+control variables
+1 ms task:
+Store control variables
+Trigger immediate execution of event handler
+Event handler finished,
+Read and check input signal
+continues
+1 ms task:
+Read and check input signal
+1 ms task:
+Save signal
+Compute performance metric 
+continues
+1 ms task:
+Save signal
+Trigger execution of 1 ms task, interrupting 10 ms task
+Trigger execution of 1 ms and 10 ms tasks
+Release memory, core 2 continues
+Lock memory, blocking core 2
+10 ms task:
+Compute performance metric
+1 ms task:
+Read and check input signal
+Trigger execution of 1 ms task
+Task check input signal blocked
+Task compute performance 
+metric blocked
+Task save signal blocked by 
+memory-lock from core 1
+5ms
+
+--- Seite 30 ---
+MEM
+CORE 1
+CORE 2
+Variable lock
+Timer ISR
+Task 1ms
+Task 10ms
+Timer ISR
+Event ISR
+Event handler
+Task 1ms
+Task 10ms
+Legend:
+Waiting for execution
+Executing
+Blocked by other task
+Blocked by variable lock
+lock
+unlock
+5ms
+
+--- Seite 31 ---
+
+
+--- Seite 32 ---
+Appendix A: Abbreviations
+
+--- Seite 33 ---
+PORSCHE
+
+MPU Memory Protection Unit
+
+OBD On Board Diagnostic
+
+ODIS Original Diagnosis System
+
+OEM Original Equipment Manufacturer
+
+OTA Over-The-Air (Update)
+
+PAG Porsche AG
+
+PASDT Porsche Automated ECU Diagnostic Tester
+PIDT Porsche Interactive Diagnosis Tester
+
+PVS Production test series
+
+RAM Random Access Memory
+
+SBC System Basis Chip
+
+SOP Start Of Production
+
+SWaP SW as a Product
+
+SW-C Software Component
+
+XCP Universal Measurement and Calibration Protocol
+
+ Dr. Ing. h.c. F. Porsche AG
+EGE2
+
+Guide for Software Architecture Documentation
+
+Version 5.1
+2023-04-14
+
