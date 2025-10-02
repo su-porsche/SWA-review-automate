@@ -29,7 +29,7 @@ import pytesseract
 from PIL import Image
 
 HEADING_RE = re.compile(
-    r"^(?P<number>\d+(?:\.\d+)*)(?:\s*[)\-\u2013\u2014:]|\s+)(?P<title>.+)$"
+    r"^(?P<number>\d+(?:\.\d+)*)\.?\s+(?P<title>[A-Za-z][^\n:]*[A-Za-z]+)$"
 )
 ALL_CAPS_RE = re.compile(
     r"^[A-Z\u00c4\u00d6\u00dc][A-Z0-9\u00c4\u00d6\u00dc\u00df\s/-]{3,}$"
@@ -54,7 +54,6 @@ DEFAULT_IGNORE_SECTION_NAMES = {
     "historique",
     "table of contents",
     "contents",
-    "content",
     "table des mati\u00e8res",
     "sommaire",
     "inhalt",
@@ -90,7 +89,7 @@ def load_ignore_section_config(path: Optional[str]) -> Set[str]:
     if not config_path.exists():
         return set()
     try:
-        with config_path.open("r", encoding="utf-8") as handle:
+        with config_path.open("r", encoding="utf-8-sig") as handle:
             data = json.load(handle)
     except Exception as exc:  # pragma: no cover - defensive logging
         print(f"Warnung: Konnte Konfigurationsdatei {config_path} nicht laden ({exc}).")
@@ -245,6 +244,7 @@ class SectionAggregator:
         self.all_blocks: List[SectionBlock] = []
         self.ignore_section_active: bool = False
         self._ignore_level: Optional[int] = None
+        self.last_chapter_parts: List[int] = []  # Track last valid chapter number parts
 
     def _close_until(self, level: int) -> None:
         while self.active and self.active[-1].level >= level:
@@ -266,13 +266,70 @@ class SectionAggregator:
                 return block.number
         return None
 
+    def _is_valid_sequence(self, number: str, level: int) -> bool:
+        """Validate that chapter numbers follow logical sequence."""
+        if not number or number == "0":
+            return True
+
+        # Parse chapter number into parts (e.g., "8.6.2" -> [8, 6, 2])
+        try:
+            parts = [int(x) for x in number.split(".")]
+        except ValueError:
+            return False
+
+        # First chapter is always valid
+        if not self.last_chapter_parts:
+            self.last_chapter_parts = parts
+            return True
+
+        # Compare with last valid chapter
+        last = self.last_chapter_parts
+
+        # Allow next sequential chapter at same or higher level
+        # Valid progressions:
+        # 1 -> 1.1 (add sublevel)
+        # 1.1 -> 1.2 (increment at same level)
+        # 1.2 -> 2 (increment at higher level)
+        # 8.6.2 -> 8.6.3 or 8.7 or 9 (valid)
+        # 8.6.2 -> 1 (INVALID - going backwards)
+
+        for i in range(min(len(parts), len(last))):
+            if parts[i] > last[i]:
+                # Found increment at this level
+                self.last_chapter_parts = parts
+                return True
+            elif parts[i] < last[i]:
+                # Going backwards is invalid
+                return False
+            # parts[i] == last[i], continue checking deeper levels
+
+        # If all common parts match, check length
+        if len(parts) > len(last):
+            # Adding sublevel (e.g., 1 -> 1.1)
+            self.last_chapter_parts = parts
+            return True
+        elif len(parts) < len(last):
+            # Moving up level (e.g., 1.2.3 -> 2)
+            # This is only valid if we incremented at the new level
+            # Already checked above, so if we get here with equal prefix it's invalid
+            return False
+
+        # Exact same number - likely duplicate, reject
+        return False
+
     def _update_page_end(self, page_num: int) -> None:
         for block in self.active:
             block.page_end = max(block.page_end, page_num)
 
-    def start_section(self, level: int, number: str, title: str, page_num: int) -> None:
+    def start_section(self, level: int, number: str, title: str, page_num: int) -> bool:
+        """Start a new section. Returns True if section was created, False if rejected."""
         number = number.strip()
         title = title.strip()
+
+        # Validate chapter sequence (skip for document root and ignored sections)
+        if number and number != "0" and not self._is_valid_sequence(number, level):
+            return False
+
         self._close_until(level)
         parent = self._find_parent(level)
         block = SectionBlock(
@@ -289,6 +346,7 @@ class SectionAggregator:
         self.active.append(block)
         self.all_blocks.append(block)
         self._update_page_end(page_num)
+        return True
 
     def add_text(self, line: str, page_num: int) -> None:
         if self.ignore_section_active:
@@ -349,83 +407,202 @@ def _normalise_heading_title(title: str, page_num: int) -> Tuple[str, bool]:
 
 def detect_heading(line: str, page_num: int) -> Optional[Tuple[int, str, str]]:
     stripped = line.strip()
-    candidate = stripped
-    match = HEADING_RE.match(candidate)
-    if not match:
-        alternative = TOP_LEVEL_DOT_HEADING_RE.sub(r"\1 ", stripped, count=1)
-        if alternative != stripped:
-            candidate = alternative
-            match = HEADING_RE.match(candidate)
+
+    # Try numbered headings first (e.g. "1. Introduction")
+    match = HEADING_RE.match(stripped)
     if match:
-        number = match.group("number").rstrip(".")
-        raw_title = match.group("title").strip(" \t-\u2013\u2014:)")
+        number = match.group("number")
+        raw_title = match.group("title").strip()
+
+        # Reject if title contains units or technical suffixes
+        if any(unit in raw_title.lower() for unit in ['mbit/s', 'mb/s', 'kb/s', 'bit/s', 'ms', 'µs', 'ns']):
+            return None
+
+        # Prüfe, ob die erste Nummer sinnvoll ist (max. 20 für Hauptkapitel)
+        first_num = int(number.split(".")[0])
+        if first_num > 20:
+            return None
+
         title, looks_like_toc = _normalise_heading_title(raw_title, page_num)
         if looks_like_toc:
             return None
+        if len(title) < 3:
+            return None
+
+        # Title must end with a letter (not a number or unit)
+        if not title[-1].isalpha():
+            return None
+
         if title and any(char.isalpha() for char in title):
             level = len(number.split("."))
             return level, number, title
-    if ALL_CAPS_RE.match(stripped):
-        title, looks_like_toc = _normalise_heading_title(stripped, page_num)
-        if looks_like_toc:
-            return None
-        if title:
-            return 1, "", title
+
+    # Check for Appendix headings (e.g. "Appendix A: Abbreviations")
+    appendix_match = re.match(r'^Appendix\s+([A-Z]):\s*(.+)$', stripped, re.IGNORECASE)
+    if appendix_match:
+        letter = appendix_match.group(1)
+        title = appendix_match.group(2).strip()
+        if title and len(title) >= 3:
+            # Convert letter to number (A=11, B=12, etc.) to maintain sequence
+            number = str(10 + ord(letter.upper()) - ord('A') + 1)
+            return (1, number, f"Appendix {letter}: {title}")
+
+    # Check for standalone section names (e.g. "Inhaltsverzeichnis", "Contents")
+    # These appear without numbers and should be treated as level-1 headings
+    normalized = _normalise_label(stripped)
+    if normalized in IGNORE_SECTION_LABELS:
+        # Return as level-1 heading with empty number so it can be ignored
+        return (1, "", stripped)
+
     return None
 
 
 def should_skip_page(raw_text: str) -> bool:
+    """Prüft, ob eine Seite übersprungen werden soll (nur bei Überschriften am Anfang)"""
     if not raw_text:
         return False
-    lowered = raw_text.lower()
-    for label in IGNORE_SECTION_LABELS:
-        if label and label in lowered:
+    # Erste 10 Zeilen prüfen
+    lines = raw_text.splitlines()[:10]
+    for line in lines:
+        normalized = _normalise_label(line)
+        if normalized in IGNORE_SECTION_LABELS:
             return True
     return False
 
 
 def should_ignore_section(number: str, title: str) -> bool:
     heading = " ".join(part for part in [number.strip(), title.strip()] if part)
-    candidates = [heading, title]
-    candidates.extend(_normalise_label(item) for item in candidates)
+    candidates = [heading, title, _normalise_label(heading), _normalise_label(title)]
     for candidate in candidates:
-        if _normalise_label(candidate) in IGNORE_SECTION_LABELS:
+        if candidate.lower().strip() in IGNORE_SECTION_LABELS:
             return True
     return False
 
 
 def format_heading(level: int, number: str, title: str) -> str:
-    level = max(1, min(level, 6))
-    prefix = "#" * level
-    heading_parts = [number.strip(), title.strip()]
-    heading_text = " ".join(part for part in heading_parts if part)
-    return f"{prefix} {heading_text}".strip()
+    """Format heading with special markers: ###{number}[title]"""
+    number_str = number.strip()
+    title_str = title.strip()
+    if number_str and title_str:
+        return f"###{{{number_str}}}[{title_str}]"
+    elif number_str:
+        return f"###{{{number_str}}}"
+    elif title_str:
+        return f"###[{title_str}]"
+    return ""
 
 
 def annotate_page_text(cleaned_text: str, page_num: int, aggregator: SectionAggregator) -> str:
     if not cleaned_text:
         return ""
+
+    lines = cleaned_text.splitlines()
+
+    # Check if entire page looks like TOC - if so, return empty string to skip entire page
+    is_toc_page = False
+    if page_num <= 10:  # Check first 10 pages for TOC
+        # Look for TOC indicators: many standalone numbers or numbers followed by text and page numbers
+        standalone_numbers = sum(1 for line in lines if re.match(r'^\d+(?:\.\d+)*$', line.strip()))
+        page_num_lines = sum(1 for line in lines if re.match(r'^\d+$', line.strip()) and int(line.strip()) > 5)
+
+        non_empty = sum(1 for line in lines if line.strip())
+
+        # If page has many standalone chapter numbers (typical for TOC)
+        if non_empty > 10 and standalone_numbers / non_empty > 0.3:
+            is_toc_page = True
+        # Or if page has many page number references
+        elif non_empty > 10 and page_num_lines > 5:
+            is_toc_page = True
+
+    # Skip entire TOC page - return empty string
+    if is_toc_page:
+        return ""
+
     annotated_lines: List[str] = []
-    for raw_line in cleaned_text.splitlines():
+    skip_next = set()  # Track line indices to skip
+
+    for line_num, raw_line in enumerate(lines):
+        # Skip if this line was already processed as part of a multi-line heading
+        if line_num in skip_next:
+            continue
+
         stripped = raw_line.strip()
         if not stripped:
             if not aggregator.ignore_section_active:
                 annotated_lines.append("")
             continue
-        heading = detect_heading(stripped, page_num)
+
+        # Try to detect heading on current line
+        try:
+            heading = detect_heading(stripped, page_num)
+        except Exception as e:
+            # Skip problematic lines
+            annotated_lines.append(stripped)
+            continue
+
+        # If no heading detected, check if this line is a standalone chapter number
+        # that might be followed by a title on the next line(s)
+        if not heading and re.match(r'^\d+(?:\.\d+)*\.?$', stripped):
+            # This is a potential chapter number, look ahead for title
+            combined_heading = None
+            for lookahead in range(1, min(5, len(lines) - line_num)):
+                next_line = lines[line_num + lookahead].strip()
+                if not next_line:
+                    continue
+                # Try combining number + next line as title
+                combined = f"{stripped} {next_line}"
+                combined_heading = detect_heading(combined, page_num)
+                if combined_heading:
+                    skip_next.add(line_num + lookahead)
+                    heading = combined_heading
+                    break
+            # If still no heading, treat as regular text
+            if not combined_heading:
+                annotated_lines.append(stripped)
+                continue
+
         if heading:
             level, number, title = heading
-            if should_ignore_section(number, title):
-                aggregator.begin_ignored_section(level)
-                continue
-            aggregator.end_ignored_section()
-            aggregator.start_section(level, number, title, page_num)
-            annotated_lines.append(format_heading(level, number, title))
+            try:
+                ignore_result = should_ignore_section(number, title)
+                if ignore_result:
+                    aggregator.begin_ignored_section(level)
+                    annotated_lines.append(f"[IGNORED SECTION: {number} {title}]")
+                    continue
+            except Exception as e:
+                # Skip if ignore check fails
+                pass
+
+            try:
+                aggregator.end_ignored_section()
+            except Exception:
+                pass
+
+            # Try to start section with sequence validation
+            section_created = False
+            try:
+                section_created = aggregator.start_section(level, number, title, page_num)
+            except Exception:
+                pass
+
+            # Only add heading if section was successfully created (passed sequence validation)
+            if section_created:
+                annotated_lines.append(format_heading(level, number, title))
+            else:
+                # Section rejected by sequence validation - treat as regular text
+                annotated_lines.append(stripped)
             continue
+
         if aggregator.ignore_section_active:
             continue
-        aggregator.add_text(stripped, page_num)
+
+        try:
+            aggregator.add_text(stripped, page_num)
+        except Exception:
+            pass
+
         annotated_lines.append(stripped)
+
     if aggregator.ignore_section_active:
         annotated_lines = [line for line in annotated_lines if line]
     return "\n".join(annotated_lines)

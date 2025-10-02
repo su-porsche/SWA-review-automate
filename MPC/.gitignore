@@ -1,0 +1,61 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+env/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+*.log
+import_log.txt
+test_run.log
+
+# Data directories
+data/txts/*.txt
+data/txts/*.jsonl
+data/txts_*/
+data/pdfs_*/
+data/txts_single/
+data/txts_test/
+data/txts_new/
+test_dir/
+
+# Don't ignore example outputs (keep one for documentation)
+!data/txts/example_output.txt
+!data/txts/example_sections.jsonl
+
+# Database dumps
+*.dump
+*.sql.backup
+
+# Temporary files
+*.tmp
+*.temp
+quick_test_output.txt
+test_complete.txt
+
+# Compiled extensions
+*.dll
+*.dylib
+
+# External dependencies
+install/
+
+# Backup files
+*_backup.py
+*.bak

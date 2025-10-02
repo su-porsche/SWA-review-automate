@@ -1,10 +1,26 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the
 // README at: https://github.com/devcontainers/templates/tree/main/src/ubuntu
 {
-	"name": "Ubuntu",
+	//"name": "Ubuntu",
 	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
-	"image": "mcr.microsoft.com/devcontainers/base:noble",
+	//"image": "mcr.microsoft.com/devcontainers/base:noble",
+	"name": "Python DevContainer mit Postgres",
+    "image": "mcr.microsoft.com/devcontainers/python:3.11",
+	"mounts": [
+        // Mount the WSL trust-store into the developement container
+        "source=/etc/ssl/certs/ca-certificates.crt,target=/etc/ssl/certs/ca-certificates.crt,type=bind",
+
+		//from docker
+		"source=${localWorkspaceFolder}/pdfs,target=/workspace/pdfs,type=bind",
+        "source=${localWorkspaceFolder}/txts,target=/workspace/txts,type=bind"
+    ],
+	"containerEnv": {
+        // Set trust-stroe for python
+        "REQUESTS_CA_BUNDLE": "/etc/ssl/certs/ca-certificates.crt"
+    },
 	"features": {
+		//from docker
+		"ghcr.io/devcontainers/features/poetry:1": {},
 		"ghcr.io/devcontainers/features/git:1": {
 			"ppa": true,
 			"version": "latest"
@@ -21,7 +37,27 @@
 		"ghcr.io/itsmechlark/features/postgresql:1": {
 			"version": "17"
 		}
-	}
+	},
+	//from docker config
+	"postCreateCommand": "pip install --upgrade pip && pip install -r requirements.txt && sudo apt-get update && sudo apt-get install -y tesseract-ocr libtesseract-dev libpq-dev",
+    "forwardPorts": [5432],
+    "service": "db",
+    "services": {
+        "db": {
+            "image": "ankane/pgvector",
+            "restart": "unless-stopped",
+            "environment": {
+                "POSTGRES_USER": "postgres",
+                "POSTGRES_PASSWORD": "postgres",
+                "POSTGRES_DB": "mpc_db"
+            },
+            "ports": ["5432:5432"],
+            "volumes": [
+                "pgdata:/var/lib/postgresql/data"
+            ]
+        }
+    }
+    
 
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},

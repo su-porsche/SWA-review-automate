@@ -1,5 +1,26 @@
-openai
-psycopg2-binary
-pgvector
-python-dotenv
+#openai
+#psycopg2-binary
+#pgvector
+#python-dotenv
 pdfplumber
+# LangChain Core
+langchain==0.2.14
+langchain-openai==0.1.22
+langchain-postgres==0.0.9
+
+# Database
+psycopg2-binary==2.9.9
+pgvector==0.2.5
+
+# PDF Processing (für pdf2text.py)
+PyMuPDF==1.23.26
+pytesseract==0.3.10
+Pillow==10.4.0
+
+# Environment & Utilities
+python-dotenv==1.0.1
+numpy==1.26.4
+
+# Optional: Für erweiterte Funktionalitäten
+tiktoken==0.7.0
+pydantic==2.8.2
