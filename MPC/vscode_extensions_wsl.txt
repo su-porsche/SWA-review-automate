@@ -1,0 +1,12 @@
+Extensions installed on WSL: Ubuntu-24.04:
+anthropic.claude-code
+ckolkman.vscode-postgres
+cweijan.dbclient-jdbc
+cweijan.vscode-postgresql-client2
+github.copilot
+github.copilot-chat
+ms-ossdata.vscode-pgsql
+ms-vscode.cmake-tools
+ms-vscode.cpptools
+ms-vscode.cpptools-extension-pack
+openai.chatgpt

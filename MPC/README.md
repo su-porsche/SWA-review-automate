@@ -249,3 +249,38 @@ Internes Projekt - Porsche AG
 → Nutzen Sie `--clear` Option oder prüfen Sie DB-Verbindung
 
 **Mehr Details:** Siehe [`docs/QUICK_START.md`](docs/QUICK_START.md)
+
+---
+
+## 🚚 Migration & Setup
+
+### Übertragung auf neuen Rechner
+
+Für die Migration des kompletten Projekts auf einen neuen Rechner stehen detaillierte Anleitungen zur Verfügung:
+
+#### 📘 Dokumentation
+- **[MIGRATION_GUIDE.md](MIGRATION_GUIDE.md)** - Vollständige Schritt-für-Schritt Migrations-Anleitung
+- **[WSL_VSCODE_SETUP.md](WSL_VSCODE_SETUP.md)** - Detaillierte WSL2 & VS Code Konfiguration
+- **[QUICK_MIGRATION.md](QUICK_MIGRATION.md)** - Quick Reference & Cheat Sheet
+- **[CONFIGURATION_CHECKLIST.md](CONFIGURATION_CHECKLIST.md)** - Checkliste aller zu sichernden Dateien
+
+#### 🔧 Automatische Scripts
+```bash
+# Backup erstellen (auf altem Rechner)
+./scripts/backup_for_migration.sh
+
+# Setup auf neuem Rechner
+./scripts/setup_wsl_complete.sh
+```
+
+**Was wird migriert:**
+- ✅ Komplettes Projekt (Code, Daten, Konfigurationen)
+- ✅ Datenbank-Backup (PostgreSQL)
+- ✅ VS Code Konfigurationen & Extensions
+- ✅ WSL-Einstellungen
+- ✅ CA-Zertifikat für Corporate Network
+- ✅ Docker-Konfigurationen
+
+**Geschätzte Zeit:** 30-45 Minuten
+
+---

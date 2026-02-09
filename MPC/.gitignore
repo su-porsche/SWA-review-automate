@@ -59,3 +59,38 @@ install/
 # Backup files
 *_backup.py
 *.bak
+backups/
+*_backup_*.tar.gz
+
+# Credentials & Security
+*.crt
+*.pem
+*.key
+*.p12
+*.pfx
+.env
+.env.*
+!.env.example
+**/credentials/
+**/secrets/
+*.secret
+*password*
+*credentials*
+
+# API Keys & Tokens
+api_key*
+*api_key*
+token*
+*token*
+access_token*
+
+# Database credentials
+pgpass
+.pgpass
+
+# Environment-specific
+environment_info.txt
+docker_status.txt
+no_database.txt
+project_inventory.txt
+wsl.conf
